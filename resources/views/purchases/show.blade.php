@@ -88,7 +88,7 @@
                 </div>
 
                 <div class="mt-2 font-semibold text-slate-900">
-                    {{ $purchase->purchase_date?->format('d M Y') ?? '—' }}
+                    {{ $purchase->purchased_at?->format('d M Y, h:i A') ?? $purchase->purchase_date?->format('d M Y') ?? '—' }}
                 </div>
 
             </div>
@@ -120,6 +120,26 @@
                     {{ $purchase->remarks }}
                 </div>
 
+            </div>
+        @endif
+
+        <div class="border-t border-slate-200 px-6 py-5">
+            <div class="grid gap-3 text-sm sm:grid-cols-2">
+                <div class="text-slate-600">Items subtotal <span class="float-right font-semibold text-slate-900">৳{{ number_format($purchase->items_total, 2) }}</span></div>
+                <div class="text-slate-600">Delivery / shipping <span class="float-right font-semibold text-slate-900">৳{{ number_format($purchase->shipping_charge, 2) }}</span></div>
+                <div class="text-slate-600">{{ $purchase->extra_charge_description ?: 'Extra charge' }} <span class="float-right font-semibold text-slate-900">৳{{ number_format($purchase->extra_charge, 2) }}</span></div>
+                <div class="font-bold text-slate-900">Invoice total <span class="float-right">৳{{ number_format($purchase->grand_total, 2) }}</span></div>
+            </div>
+        </div>
+
+        @if ($purchase->attachments->isNotEmpty())
+            <div class="border-t border-slate-200 px-6 py-5">
+                <h3 class="text-sm font-semibold text-slate-700">Invoice scans</h3>
+                <div class="mt-3 flex flex-wrap gap-3">
+                    @foreach ($purchase->attachments as $attachment)
+                        <a href="{{ route('purchase-attachments.show', $attachment) }}" class="rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100">{{ $attachment->original_file_name ?: $attachment->stored_file_name }}</a>
+                    @endforeach
+                </div>
             </div>
         @endif
 
@@ -206,6 +226,7 @@
                                     class="font-semibold text-slate-900 hover:text-blue-600">
 
                                     {{ $asset->particular_items }}
+                                    <span class="mt-1 block font-mono text-xs text-slate-500">{{ $asset->asset_code }}</span>
 
                                 </a>
 

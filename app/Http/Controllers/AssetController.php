@@ -41,8 +41,10 @@ class AssetController extends Controller
     public function store(Request $r)
     {
         $data = $this->validated($r);
+        $data['total_price'] = (float) $data['qty'] * (float) $data['unit_price'];
         $data['created_by'] = $r->user()->id;
         $asset = Asset::create($data);
+        $asset->update(['asset_code' => $this->assetCode($asset)]);
         $this->saveFiles($r, $asset);
         Activity::record('created', 'assets', 'Created purchase record #' . $asset->id, [], $asset->only(['particular_items', 'category_id', 'supplier_id', 'purchase_date', 'invoice_no', 'qty', 'unit_price', 'total_price']));
         return redirect()->route('assets.show', $asset)->with('success', 'Purchase record created.');
@@ -60,6 +62,7 @@ class AssetController extends Controller
     {
         $old = $asset->only(['particular_items', 'category_id', 'supplier_id', 'purchase_date', 'invoice_no', 'serial_number', 'brand_name', 'qty', 'unit_price', 'total_price', 'warranty', 'received_by', 'remarks']);
         $data = $this->validated($r);
+        $data['total_price'] = (float) $data['qty'] * (float) $data['unit_price'];
         $data['updated_by'] = $r->user()->id;
         $asset->update($data);
         $this->saveFiles($r, $asset);
@@ -75,12 +78,25 @@ class AssetController extends Controller
     }
     private function validated(Request $r): array
     {
-        return $r->validate(['category_id' => 'required|exists:categories,id', 'supplier_id' => 'nullable|exists:suppliers,id', 'particular_items' => 'required|string|max:255', 'purchase_date' => 'required|date', 'invoice_no' => 'nullable|string|max:100', 'serial_number' => 'nullable|string|max:255', 'brand_name' => 'nullable|string|max:150', 'qty' => 'required|numeric|min:0.01', 'unit_price' => 'required|numeric|min:0', 'total_price' => 'required|numeric|min:0', 'warranty' => 'nullable|string|max:100', 'received_by' => 'nullable|string|max:150', 'remarks' => 'nullable|string', 'invoice_files' => 'nullable|array|max:5', 'invoice_files.*' => 'file|mimes:pdf,jpg,jpeg,png,webp|max:5120', 'item_images' => 'nullable|array|max:5', 'item_images.*' => 'image|mimes:jpg,jpeg,png,webp|max:10240']);
+        $data = $r->validate(['category_id' => 'required|exists:categories,id', 'supplier_id' => 'nullable|exists:suppliers,id', 'particular_items' => 'required|string|max:255', 'purchase_date' => 'required|date', 'invoice_no' => 'nullable|string|max:100', 'serial_number' => 'nullable|string|max:255', 'brand_name' => 'nullable|string|max:150', 'qty' => 'required|numeric|min:0.01', 'unit_price' => 'required|numeric|min:0', 'warranty' => 'nullable|string|max:100', 'received_by' => 'nullable|string|max:150', 'remarks' => 'nullable|string', 'invoice_files' => 'nullable|array|max:5', 'invoice_files.*' => 'file|mimes:pdf,jpg,jpeg,png,webp|max:5120']);
+        if (Category::findOrFail($data['category_id'])->serial_required) {
+            if (empty($data['serial_number'])) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['serial_number' => 'A serial number is required for this category.']);
+            }
+            if ((float) $data['qty'] !== 1.0) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['qty' => 'Use quantity 1 for individually tracked assets.']);
+            }
+        }
+        return $data;
+    }
+    private function assetCode(Asset $asset): string
+    {
+        $categoryCode = strtoupper(Category::whereKey($asset->category_id)->value('code') ?: 'CAT');
+        return 'ZZTL-' . $categoryCode . '-' . str_pad((string) $asset->id, 7, '0', STR_PAD_LEFT);
     }
     private function saveFiles(Request $r, Asset $asset): void
     {
-        foreach (['invoice_files' => 'invoice', 'item_images' => 'item_image'] as $field => $type) {
-            foreach ($r->file($field, []) as $file) {
+        foreach ($r->file('invoice_files', []) as $file) {
                 $original = $file->getClientOriginalName();
                 $mime = $file->getMimeType();
                 $size = $file->getSize();
@@ -110,8 +126,7 @@ class AssetController extends Controller
                         }
                     }
                 }
-                AssetAttachment::create(['asset_id' => $asset->id, 'attachment_type' => $type, 'original_file_name' => $original, 'stored_file_name' => $name, 'file_path' => $path, 'mime_type' => $mime, 'original_size' => $size, 'compressed_size' => Storage::disk('private')->size($path), 'created_by' => $r->user()->id]);
-            }
+                AssetAttachment::create(['asset_id' => $asset->id, 'attachment_type' => 'invoice', 'original_file_name' => $original, 'stored_file_name' => $name, 'file_path' => $path, 'mime_type' => $mime, 'original_size' => $size, 'compressed_size' => Storage::disk('private')->size($path), 'created_by' => $r->user()->id]);
         }
     }
 }

@@ -86,6 +86,10 @@
                                 Assets
                             </th>
 
+                            <th class="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
+                                Invoice Total
+                            </th>
+
                             <th class="px-5 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500">
                                 Action
                             </th>
@@ -121,10 +125,9 @@
 
                                 <td class="px-5 py-4 text-sm text-slate-600">
 
-                                    {{ $purchase->purchase_date?->format('d M Y') }}
+                                    {{ $purchase->purchased_at?->format('d M Y, h:i A') ?? $purchase->purchase_date?->format('d M Y') }}
 
                                 </td>
-
 
                                 <td class="px-5 py-4">
 
@@ -135,6 +138,10 @@
 
                                     </span>
 
+                                </td>
+
+                                <td class="px-5 py-4 text-sm font-semibold text-slate-700">
+                                    ৳{{ number_format($purchase->grand_total, 2) }}
                                 </td>
 
 
@@ -169,7 +176,7 @@
 
                             <tr>
 
-                                <td colspan="5" class="px-6 py-14 text-center text-sm text-slate-400">
+                                <td colspan="6" class="px-6 py-14 text-center text-sm text-slate-400">
 
                                     No purchase records found.
 

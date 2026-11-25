@@ -21,9 +21,12 @@ class CategoryController extends Controller
     {
         $d = $r->validate([
             'name' => 'required|string|max:150|unique:categories,name',
+            'code' => 'required|string|max:20|alpha_dash|unique:categories,code',
             'unit' => 'required|string|max:50',
+            'serial_required' => 'nullable|boolean',
         ]);
-        $c = Category::create($d + ['is_active' => $r->boolean('is_active', true)]);
+        $d['code'] = strtoupper($d['code']);
+        $c = Category::create($d + ['serial_required' => false, 'is_active' => $r->boolean('is_active', true)]);
         Activity::record('created', 'categories', 'Created category ' . $c->name, [], $c->toArray());
         return redirect()->route('categories.index')->with('success', 'Category created.');
     }
@@ -36,9 +39,12 @@ class CategoryController extends Controller
         $old = $category->toArray();
         $d = $r->validate([
             'name' => 'required|string|max:150|unique:categories,name,' . $category->id,
+            'code' => 'required|string|max:20|alpha_dash|unique:categories,code,' . $category->id,
             'unit' => 'required|string|max:50',
+            'serial_required' => 'nullable|boolean',
         ]);
-        $category->update($d + ['is_active' => $r->boolean('is_active')]);
+        $d['code'] = strtoupper($d['code']);
+        $category->update($d + ['serial_required' => false, 'is_active' => $r->boolean('is_active')]);
         Activity::record('updated', 'categories', 'Updated category ' . $category->name, $old, $category->toArray());
         return redirect()->route('categories.index')->with('success', 'Category updated.');
     }

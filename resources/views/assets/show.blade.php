@@ -72,10 +72,11 @@
 
             @foreach([
             'Purchased From' => $asset->supplier?->name ?? '—',
+              'Asset ID' => $asset->asset_code,
             'Invoice No' => $asset->invoice_no,
             'Serial Number' => $asset->serial_number,
             'Brand Name' => $asset->brand_name,
-            'Quantity' => $asset->qty,
+            'Quantity' => $asset->qty.' '.($asset->category?->unit ?? ''),
             'Unit Price' => '৳'.number_format($asset->unit_price, 2),
             'Total Price' => '৳'.number_format($asset->total_price, 2),
             'Warranty' => $asset->warranty,

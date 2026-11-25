@@ -14,7 +14,8 @@ use App\Http\Controllers\{
     UserController,
     RoleController,
     ActivityLogController,
-    AttachmentController
+    AttachmentController,
+    PurchaseAttachmentController
 };
 
 
@@ -273,6 +274,10 @@ Route::middleware('auth')->group(function () {
 
     Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy'])
         ->name('attachments.destroy');
+
+    Route::get('/purchase-attachments/{attachment}', [PurchaseAttachmentController::class, 'show'])
+        ->middleware('can:purchases.view')
+        ->name('purchase-attachments.show');
 
 
     /*

@@ -211,6 +211,7 @@
 
                         <td class="max-w-xs px-4 py-4 font-semibold text-slate-900">
                             {{ $a->particular_items }}
+                            <span class="mt-1 block font-mono text-xs font-normal text-slate-500">{{ $a->asset_code }}</span>
                         </td>
 
                         <td class="px-4 py-4">
@@ -238,7 +239,7 @@
                         </td>
 
                         <td class="px-4 py-4">
-                            {{ $a->qty }}
+                            {{ $a->qty }} {{ $a->category?->unit }}
                         </td>
 
                         <td class="whitespace-nowrap px-4 py-4">

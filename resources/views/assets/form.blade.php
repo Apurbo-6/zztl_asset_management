@@ -100,6 +100,7 @@
 
                             <select
                                 name="category_id"
+                                id="category_id"
                                 required
                                 class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
 
@@ -109,9 +110,11 @@
 
                                 <option
                                     value="{{ $c->id }}"
+                                    data-unit="{{ $c->unit }}"
+                                    data-serial-required="{{ $c->serial_required ? '1' : '0' }}"
                                     @selected(old('category_id', $asset->category_id) == $c->id)>
 
-                                    {{ $c->name }}
+                                    {{ $c->name }} ({{ $c->code }})
 
                                 </option>
 
@@ -198,7 +201,7 @@
 
                     <div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
 
-                        <div>
+                        <div class="serial-field">
 
                             <label class="mb-2 block text-sm font-semibold text-slate-700">
                                 Serial Number
@@ -206,6 +209,7 @@
 
                             <input
                                 name="serial_number"
+                                id="serial_number"
                                 value="{{ old('serial_number', $asset->serial_number) }}"
                                 class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
 
@@ -256,12 +260,13 @@
 
                         <div>
 
-                            <label class="mb-2 block text-sm font-semibold text-slate-700">
-                                Qty <span class="text-red-500">*</span>
+                            <label for="qty" class="mb-2 block text-sm font-semibold text-slate-700">
+                                Qty (<span id="quantity-unit">{{ $categories->firstWhere('id', old('category_id', $asset->category_id))?->unit ?? 'unit' }}</span>) <span class="text-red-500">*</span>
                             </label>
 
                             <input
                                 type="number"
+                                id="qty"
                                 step="0.01"
                                 min="0.01"
                                 name="qty"
@@ -283,6 +288,7 @@
                                 step="0.01"
                                 min="0"
                                 name="unit_price"
+                                id="unit_price"
                                 required
                                 value="{{ old('unit_price', $asset->unit_price ?? 0) }}"
                                 class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
@@ -301,12 +307,14 @@
                                 step="0.01"
                                 min="0"
                                 name="total_price"
+                                id="total_price"
+                                readonly
                                 required
                                 value="{{ old('total_price', $asset->total_price ?? 0) }}"
                                 class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
 
                             <p class="mt-2 text-xs text-slate-500">
-                                Enter the invoice total manually. The system will not multiply quantity × unit price.
+                                Calculated automatically from quantity and unit price.
                             </p>
 
                         </div>
@@ -360,7 +368,7 @@
                         Attachments
                     </h3>
 
-                    <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-5">
 
                         <div class="rounded-xl border border-dashed border-slate-300 p-5">
 
@@ -380,27 +388,6 @@
                             </p>
 
                         </div>
-
-
-                        <div class="rounded-xl border border-dashed border-slate-300 p-5">
-
-                            <label class="mb-2 block text-sm font-semibold text-slate-700">
-                                Item Images
-                            </label>
-
-                            <input
-                                type="file"
-                                name="item_images[]"
-                                multiple
-                                accept="image/jpeg,image/png,image/webp"
-                                class="block w-full text-sm text-slate-500">
-
-                            <p class="mt-2 text-xs text-slate-500">
-                                Maximum 10 MB each. Images may be converted to WebP.
-                            </p>
-
-                        </div>
-
                     </div>
 
 
@@ -469,5 +456,34 @@
     </div>
 
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const category = document.getElementById('category_id');
+        const unitLabel = document.getElementById('quantity-unit');
+        const serial = document.getElementById('serial_number');
+        const quantity = document.getElementById('qty');
+        const unitPrice = document.getElementById('unit_price');
+        const totalPrice = document.getElementById('total_price');
+
+        const updateFields = () => {
+            const selected = category.options[category.selectedIndex];
+            unitLabel.textContent = selected?.dataset.unit || 'unit';
+            const serialRequired = selected?.dataset.serialRequired === '1';
+            serial.closest('.serial-field').classList.toggle('hidden', !serialRequired);
+            serial.required = serialRequired;
+            serial.placeholder = serialRequired ? 'Required for this category' : 'Not required for this category';
+            quantity.readOnly = serialRequired;
+            quantity.max = serialRequired ? '1' : '';
+            if (serialRequired) quantity.value = '1';
+            totalPrice.value = ((parseFloat(quantity.value) || 0) * (parseFloat(unitPrice.value) || 0)).toFixed(2);
+        };
+
+        category.addEventListener('change', updateFields);
+        quantity.addEventListener('input', updateFields);
+        unitPrice.addEventListener('input', updateFields);
+        updateFields();
+    });
+</script>
 
 @endsection

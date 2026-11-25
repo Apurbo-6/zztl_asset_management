@@ -12,6 +12,7 @@ class Asset extends Model
     protected $fillable = [
 
         'purchase_id',
+        'asset_code',
 
         'category_id',
         'supplier_id',

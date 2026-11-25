@@ -97,14 +97,20 @@
 
                     </label>
 
-                    <input type="date" name="purchase_date"
-                        value="{{ old('purchase_date', optional($purchase->purchase_date)->format('Y-m-d')) }}" required
+                    <input type="datetime-local" name="purchase_date"
+                        value="{{ old('purchase_date', optional($purchase->purchased_at)->format('Y-m-d\\TH:i')) }}" required
                         class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
 
                 </div>
 
             </div>
 
+
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div><label class="mb-2 block text-sm font-semibold text-slate-700">Delivery / Shipping Charge</label><input type="number" name="shipping_charge" min="0" step="0.01" value="{{ old('shipping_charge', $purchase->shipping_charge) }}" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm"></div>
+                <div><label class="mb-2 block text-sm font-semibold text-slate-700">Extra Charge</label><input type="number" name="extra_charge" min="0" step="0.01" value="{{ old('extra_charge', $purchase->extra_charge) }}" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm"></div>
+                <div><label class="mb-2 block text-sm font-semibold text-slate-700">Extra Charge Description</label><input type="text" name="extra_charge_description" maxlength="255" value="{{ old('extra_charge_description', $purchase->extra_charge_description) }}" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm"></div>
+            </div>
 
             <!-- Remarks -->
             <div>

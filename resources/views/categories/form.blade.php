@@ -94,6 +94,55 @@
             </div>
 
 
+            <div class="mt-6">
+                <label for="code" class="mb-2 block text-sm font-semibold text-slate-700">
+                    Category Code <span class="text-red-500">*</span>
+                </label>
+                <input id="code" type="text" name="code" required maxlength="20" value="{{ old('code', $category->code) }}" placeholder="e.g. LAP, SSD" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm uppercase outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 @error('code') border-red-500 @enderror">
+                <p class="mt-1 text-xs text-slate-500">Used in generated asset IDs, such as ZZTL-LAP-0000001.</p>
+                @error('code')<p class="mt-2 text-sm font-medium text-red-600">{{ $message }}</p>@enderror
+            </div>
+
+
+            <!-- Category Unit -->
+            <div class="mt-6">
+
+                <label
+                    for="unit"
+                    class="mb-2 block text-sm font-semibold text-slate-700">
+
+                    Unit <span class="text-red-500">*</span>
+
+                </label>
+
+                <input
+                    id="unit"
+                    type="text"
+                    name="unit"
+                    required
+                    maxlength="50"
+                    value="{{ old('unit', $category->unit ?? 'Piece') }}"
+                    placeholder="e.g. Piece, Meter, Kilogram"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 @error('unit') border-red-500 focus:border-red-500 focus:ring-red-100 @enderror">
+
+                @error('unit')
+                    <p class="mt-2 text-sm font-medium text-red-600">{{ $message }}</p>
+                @enderror
+
+            </div>
+
+
+            <div class="mt-6">
+                <label class="flex cursor-pointer items-start gap-3">
+                    <input type="checkbox" name="serial_required" value="1" @checked(old('serial_required', $category->serial_required ?? false)) class="mt-1 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span>
+                        <span class="block text-sm font-semibold text-slate-700">Serial number required</span>
+                        <span class="mt-0.5 block text-xs text-slate-500">Enable for individually tracked items such as laptops and SSDs.</span>
+                    </span>
+                </label>
+            </div>
+
+
             <!-- Active Status -->
             @if($category->exists)
 

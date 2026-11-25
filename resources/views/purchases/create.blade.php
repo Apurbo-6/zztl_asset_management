@@ -21,7 +21,7 @@
                 </h1>
 
                 <p class="mt-1 text-sm text-slate-500">
-                    Create one purchase invoice and add individual assets with serial numbers.
+                    Record one invoice with multiple items. Serial numbers are required only for configured categories.
                 </p>
 
             </div>
@@ -36,7 +36,7 @@
         </div>
 
 
-        <form method="POST" action="{{ route('purchases.store') }}" id="purchaseForm" class="space-y-6">
+        <form method="POST" enctype="multipart/form-data" action="{{ route('purchases.store') }}" id="purchaseForm" class="space-y-6">
 
             @csrf
 
@@ -98,12 +98,24 @@
                             Purchase Date <span class="text-red-500">*</span>
                         </label>
 
-                        <input type="date" name="purchase_date"
-                            value="{{ old('purchase_date', now()->format('Y-m-d')) }}" required
+                        <input type="datetime-local" name="purchase_date"
+                            value="{{ old('purchase_date', now()->format('Y-m-d\\TH:i')) }}" required
                             class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
 
                     </div>
 
+                </div>
+
+                <div class="mt-5 grid gap-5 md:grid-cols-3">
+                    <div><label class="mb-2 block text-sm font-semibold text-slate-700">Delivery / Shipping Charge</label><input type="number" name="shipping_charge" min="0" step="0.01" value="{{ old('shipping_charge', 0) }}" class="invoice-charge w-full rounded-xl border border-slate-300 px-4 py-3 text-sm"></div>
+                    <div><label class="mb-2 block text-sm font-semibold text-slate-700">Extra Charge</label><input type="number" name="extra_charge" min="0" step="0.01" value="{{ old('extra_charge', 0) }}" class="invoice-charge w-full rounded-xl border border-slate-300 px-4 py-3 text-sm"></div>
+                    <div><label class="mb-2 block text-sm font-semibold text-slate-700">Extra Charge Description</label><input type="text" name="extra_charge_description" maxlength="255" value="{{ old('extra_charge_description') }}" placeholder="e.g. Installation" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm"></div>
+                </div>
+
+                <div class="mt-5">
+                    <label class="mb-2 block text-sm font-semibold text-slate-700">Invoice Scan (PDF or image, up to 10 files)</label>
+                    <input type="file" name="invoice_files[]" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" class="block w-full text-sm text-slate-600">
+                    <p class="mt-1 text-xs text-slate-500">Images are resized and converted to WebP when supported. PDFs are stored as uploaded.</p>
                 </div>
 
 
@@ -135,7 +147,7 @@
                         </h2>
 
                         <p class="mt-1 text-sm text-slate-500">
-                            Add each individual asset. Each asset can have its own serial number.
+                            Add each invoice line. For serial tracked categories, add one asset per line and enter its serial number.
                         </p>
 
                     </div>
@@ -191,8 +203,8 @@
                                     </option>
 
                                     @foreach ($categories as $category)
-                                        <option value="{{ $category->id }}">
-                                            {{ $category->name }}
+                                        <option value="{{ $category->id }}" data-unit="{{ $category->unit }}" data-serial-required="{{ $category->serial_required ? '1' : '0' }}">
+                                            {{ $category->name }} ({{ $category->code }})
                                         </option>
                                     @endforeach
 
@@ -229,7 +241,7 @@
 
 
                             <!-- Serial -->
-                            <div>
+                            <div class="serial-field">
 
                                 <label class="mb-2 block text-xs font-bold text-slate-600">
                                     Serial Number
@@ -245,12 +257,10 @@
                             <div>
 
                                 <label class="mb-2 block text-xs font-bold text-slate-600">
-                                    Quantity *
+                                    Quantity (<span class="quantity-unit">unit</span>) *
                                 </label>
 
-                                <input type="number" step="1" min="1" value="1" name="items[0][qty]"
-                                    readonly required
-                                    class="w-full rounded-lg border border-slate-300 px-3 py-3 text-sm cursor-not-allowed">
+                                <input type="number" step="0.01" min="0.01" value="1" name="items[0][qty]" required class="quantity-input w-full rounded-lg border border-slate-300 px-3 py-3 text-sm">
 
                             </div>
 
@@ -263,7 +273,8 @@
                                 </label>
 
                                 <input type="number" step="0.01" min="0" name="items[0][unit_price]" required
-                                    placeholder="0.00" class="w-full rounded-lg border border-slate-300 px-3 py-3 text-sm">
+                                    placeholder="0.00" class="unit-price-input w-full rounded-lg border border-slate-300 px-3 py-3 text-sm">
+                                <p class="mt-1 text-xs text-slate-500">Line total: <span class="line-total">0.00</span></p>
 
                             </div>
 
@@ -299,6 +310,11 @@
 
                 </div>
 
+
+                <div class="border-t border-slate-200 bg-slate-50 p-6 text-right">
+                    <span class="text-sm font-semibold text-slate-600">Invoice Total</span>
+                    <span id="invoice-total" class="ml-3 text-xl font-bold text-slate-900">0.00</span>
+                </div>
 
                 <!-- Footer -->
                 <div class="flex flex-col gap-3 border-t border-slate-200 p-6 sm:flex-row sm:justify-end">
@@ -363,8 +379,8 @@
                         </option>
 
                         @foreach ($categories as $category)
-                            <option value="{{ $category->id }}">
-                                {{ $category->name }}
+                            <option value="{{ $category->id }}" data-unit="{{ $category->unit }}" data-serial-required="{{ $category->serial_required ? '1' : '0' }}">
+                                {{ $category->name }} ({{ $category->code }})
                             </option>
                         @endforeach
 
@@ -397,7 +413,7 @@
                 </div>
 
 
-                <div>
+                <div class="serial-field">
 
                     <label class="mb-2 block text-xs font-bold text-slate-600">
                         Serial Number
@@ -412,11 +428,11 @@
                 <div>
 
                     <label class="mb-2 block text-xs font-bold text-slate-600">
-                        Quantity *
+                        Quantity (<span class="quantity-unit">unit</span>) *
                     </label>
 
-                    <input type="number" data-name="qty" value="1" min="1" required
-                        class="w-full rounded-lg border border-slate-300 px-3 py-3 text-sm">
+                    <input type="number" data-name="qty" value="1" min="0.01" step="0.01" required
+                        class="quantity-input w-full rounded-lg border border-slate-300 px-3 py-3 text-sm">
 
                 </div>
 
@@ -428,7 +444,8 @@
                     </label>
 
                     <input type="number" data-name="unit_price" min="0" step="0.01" required
-                        class="w-full rounded-lg border border-slate-300 px-3 py-3 text-sm">
+                        class="unit-price-input w-full rounded-lg border border-slate-300 px-3 py-3 text-sm">
+                    <p class="mt-1 text-xs text-slate-500">Line total: <span class="line-total">0.00</span></p>
 
                 </div>
 
@@ -471,6 +488,49 @@
             const template = document.getElementById('itemTemplate');
 
             const addButton = document.getElementById('addItem');
+
+            function refreshTotals() {
+                let itemsTotal = 0;
+                container.querySelectorAll('.item-row').forEach(row => {
+                    const quantity = parseFloat(row.querySelector('.quantity-input')?.value) || 0;
+                    const unitPrice = parseFloat(row.querySelector('.unit-price-input')?.value) || 0;
+                    const lineTotal = quantity * unitPrice;
+                    row.querySelector('.line-total').textContent = lineTotal.toFixed(2);
+                    itemsTotal += lineTotal;
+                });
+                const shipping = parseFloat(document.querySelector('[name="shipping_charge"]').value) || 0;
+                const extra = parseFloat(document.querySelector('[name="extra_charge"]').value) || 0;
+                document.getElementById('invoice-total').textContent = (itemsTotal + shipping + extra).toFixed(2);
+            }
+
+            function updateCategory(row) {
+                const select = row.querySelector('select[name$="[category_id]"]');
+                const option = select?.selectedOptions[0];
+                row.querySelector('.quantity-unit').textContent = option?.dataset.unit || 'unit';
+                const serialWrap = row.querySelector('.serial-field');
+                const serialInput = serialWrap?.querySelector('input');
+                const required = option?.dataset.serialRequired === '1';
+                if (serialWrap && serialInput) {
+                    serialWrap.classList.toggle('hidden', !required);
+                    serialInput.required = required;
+                    serialInput.placeholder = required ? 'Required device serial number' : 'Not required';
+                    if (!required) serialInput.value = '';
+                }
+                const quantityInput = row.querySelector('.quantity-input');
+                quantityInput.readOnly = required;
+                quantityInput.max = required ? '1' : '';
+                if (required) quantityInput.value = '1';
+                refreshTotals();
+            }
+
+            container.addEventListener('input', refreshTotals);
+            container.addEventListener('change', event => {
+                if (event.target.matches('select[name$="[category_id]"]')) updateCategory(event.target.closest('.item-row'));
+                refreshTotals();
+            });
+            document.querySelectorAll('.invoice-charge').forEach(field => field.addEventListener('input', refreshTotals));
+            container.querySelectorAll('.item-row').forEach(updateCategory);
+            refreshTotals();
 
 
             function updateNumbers() {
@@ -518,6 +578,9 @@
                 });
 
                 container.appendChild(clone);
+
+                const newRow = container.lastElementChild;
+                updateCategory(newRow);
 
                 updateNumbers();
 
