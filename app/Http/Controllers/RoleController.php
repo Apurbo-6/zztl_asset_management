@@ -1,0 +1,11 @@
+<?php
+namespace App\Http\Controllers;
+use Illuminate\Http\Request;use Spatie\Permission\Models\Role;use Spatie\Permission\Models\Permission;use App\Support\Activity;
+class RoleController extends Controller {
+ public function index(){ $roles=Role::with('permissions')->withCount('users')->orderBy('name')->paginate(20);return view('roles.index',compact('roles')); }
+ public function create(){return view('roles.form',['role'=>new Role,'permissions'=>Permission::orderBy('name')->get()]);}
+ public function store(Request $r){$d=$r->validate(['name'=>'required|string|max:100|unique:roles,name','permission_ids'=>'nullable|array','permission_ids.*'=>'exists:permissions,id']);$role=Role::create(['name'=>$d['name'],'guard_name'=>'web']);$role->syncPermissions(Permission::whereIn('id',$d['permission_ids']??[])->get());Activity::record('created','roles','Created role '.$role->name,[],['permissions'=>$role->permissions->pluck('name')->all()]);return redirect()->route('roles.index')->with('success','Role created.');}
+ public function edit(Role $role){$role->load('permissions');return view('roles.form',['role'=>$role,'permissions'=>Permission::orderBy('name')->get()]);}
+ public function update(Request $r,Role $role){abort_if($role->name==='Super Admin',403,'The Super Admin role is protected.');$d=$r->validate(['name'=>'required|string|max:100|unique:roles,name,'.$role->id,'permission_ids'=>'nullable|array','permission_ids.*'=>'exists:permissions,id']);$old=$role->permissions->pluck('name')->all();$role->update(['name'=>$d['name']]);$role->syncPermissions(Permission::whereIn('id',$d['permission_ids']??[])->get());Activity::record('updated','roles','Updated role '.$role->name,['permissions'=>$old],['permissions'=>$role->fresh()->permissions->pluck('name')->all()]);return redirect()->route('roles.index')->with('success','Role updated.');}
+ public function destroy(Role $role){abort_if(in_array($role->name,['Super Admin']),403,'This system role is protected.');abort_if($role->users()->exists(),422,'This role is assigned to users. Reassign those users first.');Activity::record('deleted','roles','Deleted role '.$role->name,['permissions'=>$role->permissions->pluck('name')->all()],[]);$role->delete();return back()->with('success','Role deleted.');}
+}
